@@ -57,6 +57,23 @@ rugbuster-stellar USDC GBBD47IF6LWK7P7MDEVSCWR7DPUWV3NY3DTQEVFL4NAT4AQH3ZLLFLA5 
   --horizon-url https://horizon-testnet.stellar.org
 ```
 
+Run the local browser demo and HTTP API:
+
+```powershell
+rugbuster-stellar-web
+```
+
+Open `http://127.0.0.1:8787`. The API endpoint is `POST /api/scan`:
+
+```json
+{
+  "network": "mainnet",
+  "asset_code": "USDC",
+  "issuer": "GA5ZSEJYB37JRC5AVCIA5MOP4RHTM335X2KGX3IHOJAPP5RE34K4KZVN",
+  "max_holders": 200
+}
+```
+
 ## Evidence behavior
 
 - If the asset or issuer cannot be verified, the scanner returns
@@ -113,4 +130,3 @@ See [Signal methodology](docs/SIGNALS.md),
 ## License
 
 MIT
-

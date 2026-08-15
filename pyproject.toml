@@ -17,6 +17,7 @@ dev = ["pytest>=8.0"]
 
 [project.scripts]
 rugbuster-stellar = "rugbuster_stellar.cli:main"
+rugbuster-stellar-web = "rugbuster_stellar.web:main"
 
 [tool.setuptools]
 package-dir = {"" = "src"}
@@ -24,6 +25,9 @@ package-dir = {"" = "src"}
 [tool.setuptools.packages.find]
 where = ["src"]
 
+[tool.setuptools.package-data]
+rugbuster_stellar = ["static/*.html", "static/*.css", "static/*.js"]
+
+
 [tool.pytest.ini_options]
 testpaths = ["tests"]
-
