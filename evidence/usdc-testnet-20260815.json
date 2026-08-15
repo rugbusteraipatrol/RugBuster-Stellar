@@ -1,0 +1,98 @@
+{
+  "schema_version": "0.1.0",
+  "methodology": "rugbuster_stellar_classic_v0.1",
+  "network": "stellar_testnet",
+  "scanned_at": "2026-08-15T18:41:03.729931Z",
+  "latest_ledger": 4159525,
+  "evidence_sources": {
+    "asset": "https://horizon-testnet.stellar.org/assets?asset_code=USDC&asset_issuer=GBBD47IF6LWK7P7MDEVSCWR7DPUWV3NY3DTQEVFL4NAT4AQH3ZLLFLA5&limit=1",
+    "issuer": "https://horizon-testnet.stellar.org/accounts/GBBD47IF6LWK7P7MDEVSCWR7DPUWV3NY3DTQEVFL4NAT4AQH3ZLLFLA5",
+    "horizon": "https://horizon-testnet.stellar.org"
+  },
+  "asset": {
+    "code": "USDC",
+    "issuer": "GBBD47IF6LWK7P7MDEVSCWR7DPUWV3NY3DTQEVFL4NAT4AQH3ZLLFLA5",
+    "type": "credit_alphanum4",
+    "home_domain": "centre.io",
+    "stellar_toml": "https://centre.io/.well-known/stellar.toml",
+    "trustline_accounts": {
+      "authorized": 55190,
+      "authorized_to_maintain_liabilities": 0,
+      "unauthorized": 0
+    },
+    "trustline_balances": {
+      "authorized": "36879837301.2261921",
+      "authorized_to_maintain_liabilities": "0.0000000",
+      "unauthorized": "0.0000000"
+    },
+    "claimable_balances": 102,
+    "liquidity_pools": 8,
+    "contracts_holding_asset": 902
+  },
+  "issuer": {
+    "flags": {
+      "auth_required": false,
+      "auth_revocable": true,
+      "auth_immutable": false,
+      "auth_clawback_enabled": false
+    },
+    "age_days": 241,
+    "first_operation_at": "2025-12-17T18:16:15Z",
+    "signers": {
+      "master_key_active": true,
+      "master_key_weight": 1,
+      "active_signers": 1,
+      "thresholds": {
+        "low_threshold": 0,
+        "med_threshold": 0,
+        "high_threshold": 0
+      }
+    },
+    "recent_privileged_activity": {
+      "set_options_30d": 0,
+      "clawback_30d": 0,
+      "operations_examined": 200
+    }
+  },
+  "holder_analysis": {
+    "expected_trustline_accounts": 55190,
+    "fetched_accounts": 50,
+    "positive_balance_accounts": 14,
+    "complete": false,
+    "top1_share": 0.7737819416501814,
+    "top5_share": 0.9937463776727263,
+    "sample_balance": "14386.2302985"
+  },
+  "verdict": "CAUTION",
+  "risk_score": 26,
+  "signals": [
+    {
+      "code": "issuer_freeze_enabled",
+      "severity": "medium",
+      "risk_points": 18,
+      "summary": "Issuer can revoke authorization and freeze a holder's balance.",
+      "evidence": {
+        "auth_revocable": true
+      }
+    },
+    {
+      "code": "issuer_master_key_active",
+      "severity": "medium",
+      "risk_points": 8,
+      "summary": "The issuer master key still has signing weight.",
+      "evidence": {
+        "active_signers": 1,
+        "thresholds": {
+          "low_threshold": 0,
+          "med_threshold": 0,
+          "high_threshold": 0
+        }
+      }
+    }
+  ],
+  "evidence_quality": "PARTIAL",
+  "limitations": [
+    "Holder concentration was not scored because the configured holder sample is incomplete."
+  ],
+  "disclaimer": "Deterministic risk indicators are not proof of fraud and are not financial advice. Issuer control flags may be legitimate compliance features."
+}
