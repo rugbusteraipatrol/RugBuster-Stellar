@@ -8,9 +8,23 @@ version = "0.1.0"
 description = "Evidence-first risk scanner for Stellar Classic assets and issuers"
 readme = "README.md"
 requires-python = ">=3.11"
-license = {text = "MIT"}
+license = "MIT"
+license-files = ["LICENSE"]
 authors = [{name = "Fedja Furduj"}]
 dependencies = []
+classifiers = [
+  "Development Status :: 3 - Alpha",
+  "Programming Language :: Python :: 3",
+  "Programming Language :: Python :: 3.11",
+  "Programming Language :: Python :: 3.12",
+  "Programming Language :: Python :: 3.13",
+  "Topic :: Security",
+]
+
+[project.urls]
+Homepage = "https://rugbuster.io/"
+Repository = "https://github.com/rugbusteraipatrol/RugBuster-Stellar"
+Issues = "https://github.com/rugbusteraipatrol/RugBuster-Stellar/issues"
 
 [project.optional-dependencies]
 dev = ["pytest>=8.0"]

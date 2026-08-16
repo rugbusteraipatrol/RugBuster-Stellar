@@ -75,8 +75,9 @@ class RugBusterHandler(BaseHTTPRequestHandler):
         self.send_header("Content-Type", content_type)
         self.send_header("Content-Length", str(len(content)))
         self.send_header("Cache-Control", "no-store")
+        self._security_headers(html=filename == "index.html")
         self.end_headers()
-        self.wfile.write(content)
+        self._write_body(content)
 
     def do_POST(self) -> None:  # noqa: N802 - stdlib handler API
         if urlparse(self.path).path != "/api/scan":
@@ -110,9 +111,35 @@ class RugBusterHandler(BaseHTTPRequestHandler):
         self.send_header("Content-Type", "application/json; charset=utf-8")
         self.send_header("Content-Length", str(len(body)))
         self.send_header("Cache-Control", "no-store")
-        self.send_header("X-Content-Type-Options", "nosniff")
+        self._security_headers()
         self.end_headers()
-        self.wfile.write(body)
+        self._write_body(body)
+
+    def _security_headers(self, *, html: bool = False) -> None:
+        self.send_header("X-Content-Type-Options", "nosniff")
+        self.send_header("X-Frame-Options", "DENY")
+        self.send_header("Referrer-Policy", "no-referrer")
+        self.send_header("Cross-Origin-Opener-Policy", "same-origin")
+        if html:
+            self.send_header(
+                "Content-Security-Policy",
+                "default-src 'self'; "
+                "script-src 'self'; "
+                "style-src 'self' https://fonts.googleapis.com; "
+                "font-src https://fonts.gstatic.com; "
+                "img-src 'self' data:; "
+                "connect-src 'self'; "
+                "base-uri 'none'; form-action 'self'; frame-ancestors 'none'",
+            )
+        else:
+            self.send_header("Content-Security-Policy", "default-src 'none'; frame-ancestors 'none'")
+
+    def _write_body(self, body: bytes) -> None:
+        try:
+            self.wfile.write(body)
+        except (BrokenPipeError, ConnectionAbortedError, ConnectionResetError):
+            # A browser tab may close while a bounded Horizon scan is finishing.
+            return
 
 
 def build_parser() -> argparse.ArgumentParser:
@@ -137,4 +164,3 @@ def main() -> int:
 
 if __name__ == "__main__":
     raise SystemExit(main())
-

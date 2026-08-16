@@ -1,6 +1,6 @@
 from http import HTTPStatus
 
-from rugbuster_stellar.web import scan_request
+from rugbuster_stellar.web import RugBusterHandler, scan_request
 
 
 class FakeScanner:
@@ -53,3 +53,17 @@ def test_scan_request_bounds_holder_work():
     assert status == HTTPStatus.BAD_REQUEST
     assert report["error"] == "max_holders_must_be_between_1_and_500"
 
+
+def test_html_security_headers_are_restrictive():
+    handler = object.__new__(RugBusterHandler)
+    headers = []
+    handler.send_header = lambda name, value: headers.append((name, value))
+
+    handler._security_headers(html=True)
+
+    rendered = dict(headers)
+    assert rendered["X-Content-Type-Options"] == "nosniff"
+    assert rendered["X-Frame-Options"] == "DENY"
+    assert rendered["Referrer-Policy"] == "no-referrer"
+    assert "default-src 'self'" in rendered["Content-Security-Policy"]
+    assert "frame-ancestors 'none'" in rendered["Content-Security-Policy"]
