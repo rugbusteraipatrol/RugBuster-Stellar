@@ -38,6 +38,21 @@ A bounded holder sample can make a large asset appear highly concentrated.
 Mitigation: concentration affects the score only if every Horizon-reported
 trustline account was fetched.
 
+### False safety from an unevaluated concentration sample
+
+The mitigation above has a second-order failure: when the trustline count
+exceeds the sample bound, `complete` is `False` regardless of the actual
+distribution among holders that were sampled, and every *other* signal can
+legitimately be clean. In `v0.1` this produced a `SAFE` verdict for a live
+Stellar asset publicly flagged as a counterfeit `ETH` token, whose fetched
+sample already showed 62% concentration on the top holder -- data that was
+computed and then discarded by the completeness gate.
+
+Mitigation (`v0.2`): a low score computed while concentration is incomplete
+returns `PARTIAL_ASSESSMENT`, never `LOW_OBSERVED_RISK`. Concrete positive
+signals from other checks are not affected and can still produce `CAUTION` or
+`HIGH_RISK`. See `docs/SIGNALS.md` changelog.
+
 ### Legitimate control flags described as fraud
 
 Regulated issuers may intentionally use authorization, freeze, and clawback.
@@ -54,10 +69,15 @@ latest Horizon ledger header when available. Consumers must enforce freshness.
 
 ### Resource exhaustion and rate-limit abuse
 
-Large holder sets can cause excessive Horizon requests.
+Large holder sets can cause excessive Horizon requests, and a public demo
+shares one Horizon request budget across every visitor.
 
-Mitigation: holder enumeration is bounded to 2,000 accounts and defaults to 200.
-Production API work will add per-client limits, caching, and request budgets.
+Mitigation: holder enumeration is bounded to 2,000 accounts and defaults to
+200, and is skipped entirely once the asset's trustline count already exceeds
+that bound (see `docs/SIGNALS.md` v0.2 changelog). The public demo adds a
+short in-memory response cache and a per-client fixed-window rate limit on
+`/api/scan`. Both are process-local and sized for a low-traffic proof of
+concept, not a distributed production rate-limiting design.
 
 ### Methodology manipulation
 

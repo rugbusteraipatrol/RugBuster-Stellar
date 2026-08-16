@@ -31,7 +31,10 @@ A scoring change must include:
 - a new methodology version when output semantics change.
 
 Do not describe issuer control features as proof of fraud. Do not weaken the
-`INSUFFICIENT_DATA` behavior when core evidence is missing.
+`INSUFFICIENT_DATA` behavior when core evidence is missing, or the
+`PARTIAL_ASSESSMENT` behavior when holder concentration could not be fully
+evaluated -- a low score is never sufficient on its own to report
+`LOW_OBSERVED_RISK`.
 
 ## Pull requests
 

@@ -3,25 +3,31 @@
 Experimental, evidence-first risk scanner for Stellar Classic assets and
 issuer accounts.
 
-> **Status: public proof of concept (`v0.1`)**<br>
+> **Status: public proof of concept (`v0.2`)**<br>
 > The methodology has not yet been calibrated against a representative labeled
 > benchmark. Do not use its verdict as a guarantee, audit, or substitute for
-> independent due diligence.
+> independent due diligence. Live, read-only demo:
+> [stellar.rugbuster.io](https://stellar.rugbuster.io) — no wallet connection,
+> no keys, no signing.
 
 This is an early public MVP. It accepts an asset code and issuer address, reads
 public ledger evidence through Horizon, and returns one of:
 
-- `SAFE`
+- `LOW_OBSERVED_RISK`
 - `CAUTION`
 - `HIGH_RISK`
+- `PARTIAL_ASSESSMENT`
 - `INSUFFICIENT_DATA`
 
 The scanner is deterministic. It does not ask an AI model to invent a verdict.
 Every signal includes a machine-readable reason and the evidence used to produce
-it. `SAFE` means only that the checks implemented in this version did not find
-enough risk points to cross a threshold. It does **not** mean that the asset or
-issuer has been proven safe. Always read `evidence_quality` and `limitations`
-with the verdict.
+it. `LOW_OBSERVED_RISK` means only that the checks implemented in this version
+did not find enough risk points to cross a threshold **and** that holder
+concentration was fully evaluated. It does **not** mean that the asset or
+issuer has been proven safe, and it is never returned when concentration could
+not be evaluated -- that case returns `PARTIAL_ASSESSMENT` instead, even if
+every other signal came back clean. Always read `evidence_quality` and
+`limitations` with the verdict.
 
 ## Why this exists
 
@@ -45,7 +51,7 @@ Then open `http://127.0.0.1:8787`.
 
 ## Current scope
 
-Version `0.1` analyzes:
+Version `0.2` analyzes:
 
 - issuer authorization, freeze, clawback, and immutability flags;
 - issuer home domain and discoverable `stellar.toml` metadata;
@@ -58,6 +64,12 @@ Version `0.1` analyzes:
 
 Issuer control features are reported as custody and centralization risks, not as
 proof of fraud. A legitimate regulated asset may therefore receive `CAUTION`.
+
+When an asset's trustline count already exceeds the configured holder-sample
+bound (`max_holders`, default 200), holder enumeration is skipped entirely
+instead of fetching a sample the scorer would discard anyway. This keeps scans
+of widely-held assets fast and reports `concentration_not_evaluated` as a
+limitation rather than silently omitting the check.
 
 ## Quick start
 
@@ -107,8 +119,15 @@ Open `http://127.0.0.1:8787`. The API endpoint is `POST /api/scan`:
 - If the asset or issuer cannot be verified, the scanner returns
   `INSUFFICIENT_DATA` and no numeric score.
 - Holder concentration affects the score only when all Horizon trustline
-  accounts were fetched. Partial samples remain visible but are not used to
-  make a concentration claim.
+  accounts were fetched. Partial or skipped samples remain visible in
+  `holder_analysis` but are never used to make a concentration claim.
+- **A low score computed from an incomplete holder sample is never reported as
+  `LOW_OBSERVED_RISK`.** It is reported as `PARTIAL_ASSESSMENT` instead, with a
+  `concentration_not_evaluated` limitation explaining why. Signals that *are*
+  fully evaluated -- issuer flags, account age, trustline count, liquidity-pool
+  presence, recent privileged activity -- can still drive `CAUTION` or
+  `HIGH_RISK` even when concentration could not be assessed; only the
+  reassuring case is withheld.
 - Horizon's `Latest-Ledger` header is included in the report when available.
 - Every report records its scan time, methodology version, limitations, and
   deterministic signals.
@@ -138,7 +157,7 @@ endpoints. The CLI supports an explicit `--horizon-url` for development.
 
 ```json
 {
-  "methodology": "rugbuster_stellar_classic_v0.1",
+  "methodology": "rugbuster_stellar_classic_v0.2",
   "network": "stellar_mainnet",
   "asset": {"code": "USDC", "issuer": "G..."},
   "verdict": "CAUTION",
@@ -157,10 +176,30 @@ endpoints. The CLI supports an explicit `--horizon-url` for development.
 }
 ```
 
+## Public demo
+
+[stellar.rugbuster.io](https://stellar.rugbuster.io) runs this repository's
+web scanner, isolated from every other RugBuster service and from production
+Avalanche infrastructure. It never asks for a wallet connection, a seed
+phrase, or a signature, and it cannot submit a transaction -- the codebase has
+no code path that does. To keep the shared Horizon request budget usable for
+everyone testing it:
+
+- responses are cached for a short TTL, keyed on network + asset code + issuer;
+- each client is limited to a small number of scans per minute (`HTTP 429` with
+  `Retry-After` once exceeded).
+
+Both limits are in-memory and process-local -- adequate for a proof of
+concept, not a production rate-limiting design.
+
 ## Validation status
 
-- 11 unit and API-boundary tests are included.
-- Two dated Circle USDC smoke reports are frozen under [`evidence/`](evidence/).
+- 21 unit and API-boundary tests are included, covering scoring, the
+  fast-mode holder skip, the public-demo cache and rate limiter, and the
+  HTTP boundary.
+- Two dated Circle USDC smoke reports are frozen under [`evidence/`](evidence/)
+  and predate the `v0.2` verdict rename -- see that folder's `README.md` for
+  what changed and why.
 - Those reports prove integration behavior, not predictive accuracy.
 - No representative labeled Stellar benchmark has been completed yet.
 - Scoring weights are an explicit hypothesis documented in

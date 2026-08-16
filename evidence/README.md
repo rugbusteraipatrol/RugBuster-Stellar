@@ -16,3 +16,11 @@ The mainnet run inspected 200 of more than two million trustline accounts. The
 testnet run inspected 50 of more than fifty thousand. Both reports therefore
 mark holder evidence `PARTIAL` and do not score concentration.
 
+**Naming note (2026-08-16):** these files are frozen and were not
+regenerated, so the mainnet report still reads `"verdict": "SAFE"` under the
+original `v0.1` vocabulary. `v0.2` renamed that verdict to `LOW_OBSERVED_RISK`
+and, more importantly, changed what a low score with incomplete holder
+evidence produces: the same mainnet report generated today would return
+`PARTIAL_ASSESSMENT`, not a low-risk verdict, precisely because its holder
+sample is `PARTIAL`. See `docs/SIGNALS.md`'s changelog for why.
+

@@ -6,17 +6,22 @@ The future public service will monitor:
 
 - Horizon request success rate and latency;
 - scans by verdict and evidence-quality state;
-- percentage of `INSUFFICIENT_DATA` results by reason;
+- percentage of `INSUFFICIENT_DATA` and `PARTIAL_ASSESSMENT` results by reason;
 - rate-limit and upstream timeout frequency;
-- holder-enumeration request count and truncation rate;
+- holder-enumeration request count, skip rate (fast mode), and truncation rate;
+- cache hit rate on `/api/scan`;
 - age of the latest Horizon ledger observed;
 - methodology version used for every report.
 
 ## Initial targets
 
 - >=99% successful responses for valid, existing assets when Horizon is healthy;
-- no `SAFE` response when the asset or issuer lookup failed;
-- p95 scan latency under 10 seconds with the default 200-holder bound;
+- no `LOW_OBSERVED_RISK` response when the asset or issuer lookup failed, and
+  no `LOW_OBSERVED_RISK` response when holder concentration was not fully
+  evaluated (`PARTIAL_ASSESSMENT` is correct there instead);
+- p95 scan latency under 10 seconds with the default 200-holder bound (the
+  `v0.2` fast-mode holder skip exists specifically to hold this target for
+  widely-held assets, which previously took 30-70 seconds each);
 - alert if latest observed ledger stops advancing for 10 minutes;
 - alert if `INSUFFICIENT_DATA` exceeds 10% of valid requests over 15 minutes;
 - preserve raw fixture responses for every published benchmark example.

@@ -69,9 +69,9 @@ summary { padding:20px clamp(24px,4vw,40px); display:flex; justify-content:space
 summary::-webkit-details-marker { display:none; }
 summary span { color:var(--yellow); font-size:17px; }
 pre { overflow:auto; max-height:520px; margin:0 24px 24px; padding:18px; border:1px solid #292929; color:#d7d5ce; background:#070707; font:12px/1.55 "DM Mono",monospace; }
-.safe { color:var(--yellow)!important; }
+.low-observed-risk { color:var(--yellow)!important; }
 .caution { color:var(--yellow-soft)!important; }
-.high-risk,.insufficient-data { color:var(--danger)!important; }
+.high-risk,.insufficient-data,.partial-assessment { color:var(--danger)!important; }
 footer { min-height:64px; padding:18px max(20px,calc((100vw - 1320px)/2)); display:flex; align-items:center; justify-content:space-between; gap:24px; border-top:1px solid var(--line); color:#77756f; background:#050505; font-size:9px; letter-spacing:.09em; }
 @media (max-width:940px) { .hero{grid-template-columns:1fr;padding-top:60px}.hero-copy{max-width:720px}.hero::before{top:10px;right:-260px}.method-band{grid-template-columns:repeat(2,1fr)}.method-band>p{grid-column:1/-1} }
 @media (max-width:620px) { .system-strip{justify-content:flex-start;padding-left:16px}.system-strip span:nth-child(n+2){display:none}.nav{width:calc(100% - 28px);height:68px}.nav-meta{font-size:8px}.hero{width:calc(100% - 28px);min-height:auto;padding:54px 0 58px;gap:42px}h1{font-size:clamp(48px,15vw,68px)}.lede{margin:24px 0;font-size:16px}.scanner{padding:20px;box-shadow:8px 8px 0 rgba(255,213,31,.08)}.field-row{grid-template-columns:1fr;gap:0}input,select{height:50px}.method-band{grid-template-columns:1fr 1fr;padding:26px 18px}.method-band>div{padding-left:12px}.method-band span{font-size:10px}.result{width:calc(100% - 28px);margin:54px auto 68px;box-shadow:8px 8px 0 rgba(255,213,31,.07)}.result-header{align-items:flex-end}.result h2{font-size:39px}.signals{grid-template-columns:1fr}.quality-line{align-items:flex-start;flex-direction:column;gap:8px}.quality{text-align:left}footer{align-items:flex-start;flex-direction:column} }

@@ -64,15 +64,17 @@ class StellarAssetScanner:
         latest_ledgers = [asset_response.latest_ledger, account_response.latest_ledger]
 
         holder_data: dict[str, Any]
-        try:
-            holder_data, holder_ledgers = self._collect_holders(code, issuer, asset)
-            latest_ledgers.extend(holder_ledgers)
-            if not holder_data["complete"]:
-                limitations.append(
-                    "Holder concentration was not scored because the configured holder sample is incomplete."
-                )
-        except HorizonError as exc:
+        expected_holders = self._expected_holder_count(asset)
+        if expected_holders > self.max_holders:
+            # A large trustline set cannot be fully enumerated within the
+            # configured bound, and Horizon's holder-listing query itself gets
+            # slow as the trustline count grows into the hundreds of thousands.
+            # Skip the request entirely rather than pay that latency for a
+            # sample scoring will not trust anyway: an incomplete sample never
+            # produces a concentration claim (see scoring.py), so fetching it
+            # only when it fits the bound has no scoring cost.
             holder_data = {
+                "expected_trustline_accounts": expected_holders,
                 "fetched_accounts": 0,
                 "positive_balance_accounts": 0,
                 "complete": False,
@@ -80,7 +82,32 @@ class StellarAssetScanner:
                 "top5_share": None,
                 "sample_balance": None,
             }
-            limitations.append(f"Holder collection unavailable: {exc}")
+            limitations.append(
+                "concentration_not_evaluated: trustline count "
+                f"({expected_holders}) exceeds the configured holder sample "
+                f"limit ({self.max_holders}); holder concentration was not "
+                "evaluated and does not affect this verdict."
+            )
+        else:
+            try:
+                holder_data, holder_ledgers = self._collect_holders(code, issuer, asset)
+                latest_ledgers.extend(holder_ledgers)
+                if not holder_data["complete"]:
+                    limitations.append(
+                        "concentration_not_evaluated: the configured holder sample "
+                        "was incomplete; holder concentration was not evaluated and "
+                        "does not affect this verdict."
+                    )
+            except HorizonError as exc:
+                holder_data = {
+                    "fetched_accounts": 0,
+                    "positive_balance_accounts": 0,
+                    "complete": False,
+                    "top1_share": None,
+                    "top5_share": None,
+                    "sample_balance": None,
+                }
+                limitations.append(f"Holder collection unavailable: {exc}")
 
         history, history_ledgers, history_limitations = self._collect_history(issuer)
         latest_ledgers.extend(history_ledgers)
@@ -114,7 +141,7 @@ class StellarAssetScanner:
 
         return {
             "schema_version": "0.1.0",
-            "methodology": "rugbuster_stellar_classic_v0.1",
+            "methodology": "rugbuster_stellar_classic_v0.2",
             "network": "stellar_mainnet"
             if "testnet" not in self.client.base_url
             else "stellar_testnet",
@@ -164,10 +191,14 @@ class StellarAssetScanner:
             return "invalid_issuer_address"
         return None
 
+    @staticmethod
+    def _expected_holder_count(asset: dict[str, Any]) -> int:
+        return sum(int(v or 0) for v in asset.get("accounts", {}).values())
+
     def _collect_holders(
         self, code: str, issuer: str, asset: dict[str, Any]
     ) -> tuple[dict[str, Any], list[int | None]]:
-        expected = sum(int(v or 0) for v in asset.get("accounts", {}).values())
+        expected = self._expected_holder_count(asset)
         balances: list[Decimal] = []
         fetched = 0
         cursor: str | None = None
@@ -301,7 +332,7 @@ class StellarAssetScanner:
         limitation = reason if detail is None else f"{reason}: {detail}"
         return {
             "schema_version": "0.1.0",
-            "methodology": "rugbuster_stellar_classic_v0.1",
+            "methodology": "rugbuster_stellar_classic_v0.2",
             "network": "stellar_mainnet"
             if "testnet" not in self.client.base_url
             else "stellar_testnet",

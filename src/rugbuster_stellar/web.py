@@ -4,6 +4,9 @@ from __future__ import annotations
 
 import argparse
 import json
+import os
+import threading
+import time
 from http import HTTPStatus
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from importlib.resources import files
@@ -18,6 +21,22 @@ NETWORKS = {
     "testnet": "https://horizon-testnet.stellar.org",
 }
 MAX_BODY_BYTES = 16_384
+
+# Public-demo protections. Neither is meant to withstand a determined
+# attacker; the job is to keep one careless script or crawler from exhausting
+# the shared Horizon request budget for every other visitor, and to make
+# repeated clicks on a popular asset feel instant instead of re-scanning it.
+CACHE_TTL_SECONDS = 120.0
+CACHE_MAX_ENTRIES = 500
+RATE_LIMIT_WINDOW_SECONDS = 60.0
+RATE_LIMIT_MAX_REQUESTS = 6
+RATE_LIMIT_MAX_TRACKED_CLIENTS = 2_000
+
+_cache_lock = threading.Lock()
+_scan_cache: dict[tuple[str, str, str, int], tuple[float, int, dict[str, Any]]] = {}
+
+_rate_lock = threading.Lock()
+_rate_buckets: dict[str, list[float]] = {}
 
 
 def scan_request(
@@ -46,6 +65,70 @@ def scan_request(
     return (HTTPStatus.BAD_REQUEST if invalid else HTTPStatus.OK), report
 
 
+def _cache_key(payload: dict[str, Any]) -> tuple[str, str, str, int]:
+    try:
+        max_holders = int(payload.get("max_holders", 200))
+    except (TypeError, ValueError):
+        max_holders = 200
+    return (
+        str(payload.get("network", "mainnet")).strip().lower(),
+        str(payload.get("asset_code", "")).strip().upper(),
+        str(payload.get("issuer", "")).strip().upper(),
+        max_holders,
+    )
+
+
+def cached_scan_request(
+    payload: dict[str, Any],
+    scanner_factory: Callable[..., StellarAssetScanner] = StellarAssetScanner,
+    *,
+    now: float | None = None,
+) -> tuple[int, dict[str, Any], bool]:
+    """`scan_request` behind a short TTL cache, keyed on the scan inputs.
+
+    Only successful (200) reports are cached, so a bad request never sticks.
+    `scan_request` itself stays uncached and is what the test suite exercises
+    directly -- this wrapper only matters for the running public demo.
+    """
+    moment = time.monotonic() if now is None else now
+    key = _cache_key(payload)
+    with _cache_lock:
+        cached = _scan_cache.get(key)
+        if cached and moment - cached[0] < CACHE_TTL_SECONDS:
+            return cached[1], cached[2], True
+
+    status, report = scan_request(payload, scanner_factory)
+    if status == HTTPStatus.OK:
+        with _cache_lock:
+            if len(_scan_cache) >= CACHE_MAX_ENTRIES:
+                oldest_key = min(_scan_cache, key=lambda k: _scan_cache[k][0])
+                _scan_cache.pop(oldest_key, None)
+            _scan_cache[key] = (moment, status, report)
+    return status, report, False
+
+
+def allow_request(client_ip: str, *, now: float | None = None) -> bool:
+    """A simple fixed-window per-IP limiter for the public demo.
+
+    Not distributed and not meant to withstand a determined attacker; its job
+    is to keep one careless script from exhausting the shared Horizon budget
+    for every other visitor.
+    """
+    moment = time.monotonic() if now is None else now
+    with _rate_lock:
+        if client_ip not in _rate_buckets and len(_rate_buckets) >= RATE_LIMIT_MAX_TRACKED_CLIENTS:
+            oldest_ip = min(_rate_buckets, key=lambda ip: _rate_buckets[ip][0] if _rate_buckets[ip] else 0.0)
+            _rate_buckets.pop(oldest_ip, None)
+        bucket = _rate_buckets.setdefault(client_ip, [])
+        cutoff = moment - RATE_LIMIT_WINDOW_SECONDS
+        while bucket and bucket[0] < cutoff:
+            bucket.pop(0)
+        if len(bucket) >= RATE_LIMIT_MAX_REQUESTS:
+            return False
+        bucket.append(moment)
+        return True
+
+
 class RugBusterHandler(BaseHTTPRequestHandler):
     server_version = "RugBusterStellar/0.1"
 
@@ -57,7 +140,7 @@ class RugBusterHandler(BaseHTTPRequestHandler):
                 {
                     "status": "ok",
                     "service": "rugbuster-stellar",
-                    "methodology": "rugbuster_stellar_classic_v0.1",
+                    "methodology": "rugbuster_stellar_classic_v0.2",
                 },
             )
             return
@@ -83,6 +166,18 @@ class RugBusterHandler(BaseHTTPRequestHandler):
         if urlparse(self.path).path != "/api/scan":
             self._json(HTTPStatus.NOT_FOUND, {"error": "not_found"})
             return
+        client_ip = self.client_address[0] if self.client_address else "unknown"
+        if not allow_request(client_ip):
+            self._json(
+                HTTPStatus.TOO_MANY_REQUESTS,
+                {
+                    "error": "rate_limited",
+                    "detail": f"Max {RATE_LIMIT_MAX_REQUESTS} scans per "
+                    f"{int(RATE_LIMIT_WINDOW_SECONDS)}s per client on this public demo.",
+                },
+                extra_headers={"Retry-After": str(int(RATE_LIMIT_WINDOW_SECONDS))},
+            )
+            return
         try:
             length = int(self.headers.get("Content-Length", "0"))
         except ValueError:
@@ -99,18 +194,26 @@ class RugBusterHandler(BaseHTTPRequestHandler):
         if not isinstance(payload, dict):
             self._json(HTTPStatus.BAD_REQUEST, {"error": "json_object_required"})
             return
-        status, report = scan_request(payload)
-        self._json(status, report)
+        status, report, cache_hit = cached_scan_request(payload)
+        self._json(status, report, extra_headers={"X-Cache": "HIT" if cache_hit else "MISS"})
 
     def log_message(self, fmt: str, *args: Any) -> None:
         print(f"[{self.log_date_time_string()}] {fmt % args}")
 
-    def _json(self, status: int, payload: dict[str, Any]) -> None:
+    def _json(
+        self,
+        status: int,
+        payload: dict[str, Any],
+        *,
+        extra_headers: dict[str, str] | None = None,
+    ) -> None:
         body = json.dumps(payload, indent=2).encode("utf-8")
         self.send_response(status)
         self.send_header("Content-Type", "application/json; charset=utf-8")
         self.send_header("Content-Length", str(len(body)))
         self.send_header("Cache-Control", "no-store")
+        for name, value in (extra_headers or {}).items():
+            self.send_header(name, value)
         self._security_headers()
         self.end_headers()
         self._write_body(body)
@@ -144,8 +247,12 @@ class RugBusterHandler(BaseHTTPRequestHandler):
 
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(description="Run the local RugBuster Stellar demo")
-    parser.add_argument("--host", default="127.0.0.1")
-    parser.add_argument("--port", default=8787, type=int)
+    # Defaults favor local, single-user use (127.0.0.1). The public deploy
+    # sets HOST=0.0.0.0 explicitly via environment rather than relying on an
+    # implicit default here, so a plain local run never accidentally listens
+    # beyond localhost.
+    parser.add_argument("--host", default=os.getenv("HOST", "127.0.0.1"))
+    parser.add_argument("--port", default=int(os.getenv("PORT", "8787")), type=int)
     return parser
 
 

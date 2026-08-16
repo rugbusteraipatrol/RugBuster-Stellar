@@ -221,7 +221,17 @@ def score_asset(facts: dict[str, Any]) -> dict[str, Any]:
     elif risk_score >= 25:
         verdict = "CAUTION"
     else:
-        verdict = "SAFE"
+        verdict = "LOW_OBSERVED_RISK"
+
+    # A low score built from an incomplete holder sample is not evidence of low
+    # risk -- it may simply mean concentration was never evaluated (see
+    # `concentration_not_evaluated` in scanner.py). Concrete positive signals
+    # (mint/freeze/clawback, a very new issuer, few trustlines, recent
+    # privileged activity) still stand on their own and are not downgraded:
+    # only the "nothing bad found" case is blocked from reading as reassuring.
+    concentration_complete = concentration.get("complete")
+    if verdict == "LOW_OBSERVED_RISK" and concentration_complete is not True:
+        verdict = "PARTIAL_ASSESSMENT"
 
     return {
         "verdict": verdict,

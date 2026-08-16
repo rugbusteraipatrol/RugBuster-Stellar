@@ -87,6 +87,42 @@ class FakeClient:
         raise AssertionError((path, params))
 
 
+class LargeHolderFakeClient(FakeClient):
+    """Same fixture as FakeClient, but the asset reports far more trustlines
+    than the configured holder-sample bound."""
+
+    def get(self, path, params=None):
+        if path == "/assets":
+            response = super().get(path, params)
+            response.data["_embedded"]["records"][0]["accounts"] = {
+                "authorized": 1000,
+                "unauthorized": 0,
+            }
+            return response
+        if path == "/accounts":
+            raise AssertionError(
+                "holder listing must be skipped once the expected trustline "
+                "count already exceeds max_holders"
+            )
+        return super().get(path, params)
+
+
+def test_large_trustline_count_skips_holder_enumeration():
+    scanner = StellarAssetScanner(
+        LargeHolderFakeClient(), max_holders=200, now=datetime(2026, 8, 15, tzinfo=timezone.utc)
+    )
+    report = scanner.scan("test", ISSUER.lower())
+    assert report["holder_analysis"]["complete"] is False
+    assert report["holder_analysis"]["fetched_accounts"] == 0
+    assert any(item.startswith("concentration_not_evaluated") for item in report["limitations"])
+    # Nothing else about this fixture is risky, so skipping concentration must
+    # not be allowed to read as "safe" -- this is exactly the bug a fake ETH
+    # asset with 62% top-holder concentration hit in the wild: 534 trustlines
+    # exceeded the 200-holder bound, concentration was silently dropped, and
+    # every other check came back clean, producing a false SAFE.
+    assert report["verdict"] == "PARTIAL_ASSESSMENT"
+
+
 def test_scanner_builds_evidence_report():
     scanner = StellarAssetScanner(
         FakeClient(), now=datetime(2026, 8, 15, tzinfo=timezone.utc)
