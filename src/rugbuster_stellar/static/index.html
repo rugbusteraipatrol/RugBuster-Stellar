@@ -3,54 +3,77 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <meta name="description" content="Evidence-first Stellar asset and issuer risk scanner">
-  <title>RugBuster Stellar Scanner</title>
+  <meta name="description" content="Evidence-first Stellar asset and issuer risk scanner by RugBuster">
+  <title>RugBuster // Stellar Shield</title>
   <link rel="stylesheet" href="/static/styles.css">
 </head>
 <body>
-  <main class="shell">
-    <header>
-      <p class="eyebrow">RUGBUSTER · STELLAR MVP</p>
-      <h1>Check the issuer.<br>Read the evidence.</h1>
-      <p class="lede">A deterministic risk scan for Stellar Classic assets. No wallet connection. No transaction signing.</p>
-    </header>
+  <div class="system-strip" aria-hidden="true">
+    <span>RISK INTELLIGENCE</span><span>PUBLIC LEDGER EVIDENCE</span><span>FAIL-CLOSED BY DESIGN</span>
+  </div>
 
-    <section class="panel">
-      <form id="scan-form">
-        <label>Network
-          <select id="network" name="network">
-            <option value="mainnet">Mainnet</option>
-            <option value="testnet">Testnet</option>
-          </select>
-        </label>
-        <label>Asset code
-          <input id="asset-code" name="asset_code" value="USDC" maxlength="12" autocomplete="off" required>
-        </label>
-        <label>Issuer address
-          <input id="issuer" name="issuer" value="GA5ZSEJYB37JRC5AVCIA5MOP4RHTM335X2KGX3IHOJAPP5RE34K4KZVN" maxlength="56" autocomplete="off" required>
-        </label>
-        <button id="submit" type="submit">Scan public ledger evidence</button>
-      </form>
-      <p class="note">Control flags can be legitimate compliance features. They are reported as risks, not proof of fraud.</p>
+  <nav class="nav" aria-label="Primary navigation">
+    <a class="brand" href="https://rugbuster.io" aria-label="RugBuster home">
+      <span class="brand-mark">RB</span>
+      <span>RUGBUSTER</span>
+    </a>
+    <div class="nav-meta"><span class="status-dot"></span>STELLAR MAINNET ONLINE</div>
+  </nav>
+
+  <main>
+    <section class="hero">
+      <div class="hero-copy">
+        <p class="eyebrow">RUGBUSTER // STELLAR SECURITY LAYER</p>
+        <h1>Know the issuer.<br><em>Before you trust.</em></h1>
+        <p class="lede">Evidence-first risk intelligence for Stellar Classic assets. We inspect issuer controls and public ledger signals before you interact.</p>
+        <div class="feature-row" aria-label="Scanner properties">
+          <span>NO WALLET CONNECTION</span><span>NO SIGNING</span><span>PUBLIC DATA ONLY</span>
+        </div>
+      </div>
+
+      <section class="scanner" aria-labelledby="scanner-title">
+        <div class="scanner-head">
+          <div><p class="module-label">MODULE 01</p><h2 id="scanner-title">ASSET SCANNER</h2></div>
+          <div class="live-chip"><span></span> LIVE</div>
+        </div>
+        <form id="scan-form">
+          <div class="field-row">
+            <label class="field">Network
+              <select id="network" name="network"><option value="mainnet">Mainnet</option><option value="testnet">Testnet</option></select>
+            </label>
+            <label class="field">Asset code
+              <input id="asset-code" name="asset_code" value="USDC" maxlength="12" autocomplete="off" required>
+            </label>
+          </div>
+          <label class="field">Issuer address
+            <input id="issuer" name="issuer" value="GA5ZSEJYB37JRC5AVCIA5MOP4RHTM335X2KGX3IHOJAPP5RE34K4KZVN" maxlength="56" autocomplete="off" required spellcheck="false">
+          </label>
+          <button id="submit" type="submit"><span>RUN EVIDENCE SCAN</span><b aria-hidden="true">↗</b></button>
+        </form>
+        <p class="note"><strong>NOTE //</strong> Control flags can be legitimate compliance features. They are reported as risk signals, not proof of fraud.</p>
+      </section>
+    </section>
+
+    <section class="method-band" aria-label="Scanner method">
+      <p>WHAT WE CHECK</p>
+      <div><b>01</b><span>ISSUER<br>CONTROLS</span></div>
+      <div><b>02</b><span>TRUSTLINE<br>CONCENTRATION</span></div>
+      <div><b>03</b><span>LEDGER<br>EVIDENCE</span></div>
+      <div><b>04</b><span>DATA<br>QUALITY</span></div>
     </section>
 
     <section id="result" class="result" hidden aria-live="polite">
-      <div class="verdict-row">
-        <div>
-          <p class="eyebrow">VERDICT</p>
-          <h2 id="verdict">—</h2>
-        </div>
-        <div class="score"><span id="score">—</span><small>/100 risk</small></div>
+      <div class="result-header">
+        <div><p class="module-label">SCAN RESULT // EVIDENCE-BASED</p><h2 id="verdict">—</h2></div>
+        <div class="score-block"><span class="score-label">RISK SCORE</span><div class="score"><span id="score">—</span><small>/100</small></div></div>
       </div>
-      <p id="quality" class="quality"></p>
+      <div class="quality-line"><span>EVIDENCE STATUS</span><p id="quality" class="quality"></p></div>
       <div id="signals" class="signals"></div>
-      <details>
-        <summary>Raw evidence JSON</summary>
-        <pre id="raw"></pre>
-      </details>
+      <details><summary>VIEW RAW EVIDENCE JSON <span>+</span></summary><pre id="raw"></pre></details>
     </section>
   </main>
+
+  <footer><span>RUGBUSTER // STELLAR SHIELD // PUBLIC MVP</span><span>INFORMATIONAL RISK SIGNALS ONLY — NOT FINANCIAL ADVICE</span></footer>
   <script src="/static/app.js" defer></script>
 </body>
 </html>
-

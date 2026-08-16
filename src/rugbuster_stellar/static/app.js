@@ -14,7 +14,7 @@ network.addEventListener('change', () => { issuer.value = issuers[network.value]
 form.addEventListener('submit', async (event) => {
   event.preventDefault();
   submit.disabled = true;
-  submit.textContent = 'Reading Horizon evidence…';
+  submit.querySelector('span').textContent = 'READING HORIZON EVIDENCE…';
   try {
     const response = await fetch('/api/scan', {
       method: 'POST',
@@ -32,13 +32,14 @@ form.addEventListener('submit', async (event) => {
     render({verdict: 'INSUFFICIENT_DATA', risk_score: null, evidence_quality: 'UNAVAILABLE', signals: [], limitations: [String(error)]});
   } finally {
     submit.disabled = false;
-    submit.textContent = 'Scan public ledger evidence';
+    submit.querySelector('span').textContent = 'RUN EVIDENCE SCAN';
   }
 });
 
 function render(report) {
   result.hidden = false;
   const verdict = report.verdict || 'INSUFFICIENT_DATA';
+  result.dataset.verdict = verdict;
   const verdictEl = document.querySelector('#verdict');
   verdictEl.textContent = verdict.replaceAll('_', ' ');
   verdictEl.className = verdict.toLowerCase().replaceAll('_', '-');
@@ -72,4 +73,3 @@ function render(report) {
   document.querySelector('#raw').textContent = JSON.stringify(report, null, 2);
   result.scrollIntoView({behavior: 'smooth', block: 'start'});
 }
-
